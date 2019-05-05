@@ -8,8 +8,12 @@ const STORE = {
     {id: cuid(), name: "milk", checked: true},
     {id: cuid(), name: "bread", checked: false}
   ],
-  hideCompleted: false
+  hideCompleted: false,
+  searchCompleted: false
+
 };
+
+
 
 function generateItemElement(item) {
   return `
@@ -43,16 +47,28 @@ function renderShoppingList() {
   // set up a copy of the store's items in a local variable that we will reassign to a new
   // version if any filtering of the list occurs
   let filteredItems = STORE.items;
+  let searchedItems = STORE.items;
+  const userInput = $('.js-search-items').val();
 
   // if the `hideCompleted` property is true, then we want to reassign filteredItems to a version
   // where ONLY items with a "checked" property of false are included
   if (STORE.hideCompleted) {
     filteredItems = filteredItems.filter(item => !item.checked);
   }
+  if(STORE.searchCompleted) {
+    searchedItems = searchedItems.filter(item => item.name === userInput);
+  }
 
   // at this point, all filtering work has been done (or not done, if that's the current settings), so
   // we send our `filteredItems` into our HTML generation function 
-  const shoppingListItemsString = generateShoppingItemsString(filteredItems);
+  let shoppingListItemsString = ""
+  if (STORE.hideCompleted) {
+    shoppingListItemsString = generateShoppingItemsString(filteredItems);
+  } else if (STORE.searchCompleted) {
+    shoppingListItemsString = generateShoppingItemsString(searchedItems);
+  } else {
+    shoppingListItemsString = generateShoppingItemsString(STORE.items);
+  }
 
   // insert that HTML into the DOM
   $('.js-shopping-list').html(shoppingListItemsString);
@@ -75,32 +91,12 @@ function handleNewItemSubmit() {
   });
 }
 
-function showSearchItems(itemName) {
-  console.log(`searching list for "${itemName}"`);
-  let newArr = [];
-  for(let i=0;i<STORE.items.length;i++) {
-    if(STORE.items[i].name === itemName) {
-      newArr.push(STORE.items[i]);
-    }
-    return newArr;
-  }
 
-}
-
-function handleSearchItemsSubmit() {}
-//when the form is submitted we take user input and search items by name
-$('#js-search-items').submit(function(event) {
-  event.preventDefault();
-  console.log('`searchItemsSubmit` ran');
-  const searchedItems = $('.js-search-item-entry').val();
-  $('.js-search-item-entry').val('');
-  showSearchItems(searchedItems);
-  renderShoppingList();
-});
 
 function toggleCheckedForListItem(itemId) {
   console.log('Toggling checked property for item with id ' + itemId);
-  const item = STORE.items.find(item => item.id === itemId);
+  let item;
+  item = STORE.items.find(item => item.id === itemId);
   item.checked = !item.checked;
 }
 
@@ -162,6 +158,18 @@ function handleToggleHideFilter() {
   });
 }
 
+function toggleSearchFilter() {
+  STORE.searchCompleted = !STORE.searchCompleted;
+}
+
+function handleSearchFilter() {
+  $('#js-search-item-entry').submit(function(event) {
+    event.preventDefault();
+
+    toggleSearchFilter();
+    renderShoppingList();
+  });
+}
 
 
 // this function will be our callback when the page loads. it's responsible for
@@ -171,10 +179,10 @@ function handleToggleHideFilter() {
 function handleShoppingList() {
   renderShoppingList();
   handleNewItemSubmit();
-  handleSearchItemsSubmit();
   handleItemCheckClicked();
   handleDeleteItemClicked();
   handleToggleHideFilter();
+  handleSearchFilter();
 }
 
 // when the page loads, call `handleShoppingList`
